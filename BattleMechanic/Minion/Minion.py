@@ -1,15 +1,15 @@
-import threading
 from dataclasses import dataclass
 from random import random, randint
-from time import sleep, monotonic
 from typing import Tuple
 
-from Funcs.Funcs import nearest, sq_distance
+from math import sin, cos, atan, asin
+
+from Funcs.Funcs import nearest, sq_distance, sign
 
 
 @dataclass
 class Minion:
-    position: Tuple[int, int]  # position by (x, y)
+    position: Tuple[float, float]  # position by (x, y)
     health: int  # health limit
     damage: Tuple[int, int]  # [min, max]
     pierce: int  # value of armor ignore
@@ -18,44 +18,39 @@ class Minion:
     miss: float  # chance of missing
     range: int  # melee attack range
     chill: Tuple[int, int]  # time between attacks [min, max]
-    speed: float  # tiles per second
+    speed: int  # tiles per second
     enemy = None  # type: Minion
-    thread_fight = None
-    thread_go = None
+    fight = False
+    goto: Tuple[int, int] = None  # coords
 
-    def multiply(self, num):
-        return [self.copy() for _ in range(num)]
+    def tick(self, tick):
+        if self.fight: self.charge()
+        if self.goto is not None: self.go(tick)
 
     def choose_enemy(self, enemies: list):
         self.enemy = nearest (
-            self.position,
-            map(lambda enemy: enemy.position, enemies)
+            self,
+            enemies
         )
 
-    def go(self, x, y):
-        def phase():
-            time = monotonic()
-            while self.health > 0 or sq_distance(self.position, (x, y)) > 1:
-                self.position = \
-                    (self.position[0] + self.speed * (monotonic() - time),
-                     self.position[1] + self.speed * (monotonic() - time) )
-                time = monotonic()
+    def go(self, tick=1000):
+        try:
+            angle = atan((self.goto[1] - self.position[1]) / (self.goto[0] - self.position[0]))
+        except ZeroDivisionError:
+            angle = sign(self.goto[1] - self.position[1])
+        self.position = \
+            (self.position[0] + self.speed * tick * cos(angle),
+             self.position[1] + self.speed * tick * sin(angle))
 
-        self.thread_go = threading.Thread(target=phase)
-        self.thread_go.start()
+        if sq_distance(self.position, self.goto) < 1:
+            self.goto = None
 
     # start fight
-    def fight(self):
-        def phase():
-            while self.enemy is not None and self.health > 0 and self.enemy.health > 0:
-                if sq_distance(self.position, self.enemy.position) > self.range ** 2:
-                    self.go(*self.enemy.position)
-                else:
-                    self.hit()
-                    sleep(randint(*self.chill))
-
-        self.thread_fight = threading.Thread(target=phase)
-        self.thread_fight.start()
+    def charge(self):
+        if sq_distance(self.position, self.enemy.position) > self.range ** 2:
+            self.goto = self.enemy.position
+        else:
+            self.hit()
 
     # base hit mechanic
     def hit(self):
@@ -78,7 +73,10 @@ class Minion:
         # if we can hit back
         if sq_distance(self.position, enemy.position) - self.range ** 2 <= 1:
             self.enemy = enemy
-            self.fight()
+            self.charge()
+
+    def multiply(self, num):
+        return [self.copy() for _ in range(num)]
 
     def copy(self):
         return Minion(

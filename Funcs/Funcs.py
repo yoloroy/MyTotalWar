@@ -1,4 +1,5 @@
 import threading
+from functools import reduce
 
 
 def sq_distance(pos1, pos2):
@@ -7,8 +8,8 @@ def sq_distance(pos1, pos2):
         (pos1[1] - pos2[0]) ** 2
 
 
-def nearest(pos, poss):
-    return min(poss, key=lambda i: sq_distance(pos, i))
+def nearest(me, others):
+    return min(others, key=lambda i: sq_distance(me.position, i.position))
 
 
 def hex_color(color):
@@ -24,3 +25,10 @@ def new_thread(func):
         thread.start()
 
     return wrapper
+
+
+def list_sum(array):
+    return reduce(lambda a, b: list(a) + list(b), array)
+
+def sign(num):
+    return -1 if num < 0 else 1

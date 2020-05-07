@@ -1,9 +1,9 @@
 from BattleMechanic.Minion.Minion import Minion
-from Funcs.Funcs import sq_distance, new_thread
+from Funcs.Funcs import sq_distance, new_thread, list_sum
 
 
 class Squad:
-    SPACING = 2
+    SPACING = 4
     def __init__(self, example: Minion, num, color, enemies=list()):
         self.minions = example.multiply(num)
         self.enemies = enemies  # enemy squads
@@ -11,9 +11,9 @@ class Squad:
 
         r, g, b = self.color
         self.minion_color = (
-            0xff if r + 0xaa > 0xff else r + 0xaa,
-            0xff if g + 0xaa > 0xff else g + 0xaa,
-            0xff if b + 0xaa > 0xff else b + 0xaa
+            0xff if r + 0x44 > 0xff else r + 0x44,
+            0xff if g + 0x44 > 0xff else g + 0x44,
+            0xff if b + 0x44 > 0xff else b + 0x44
         )
 
     @property
@@ -25,10 +25,9 @@ class Squad:
 
     def rush(self):
         for i in self.minions:
-            i.choose_enemy(*self.enemies)
-            i.fight()
+            i.choose_enemy(list_sum(self.enemies))
+            i.charge()
 
-    @new_thread
     def line_up(self, xy1, xy2):
         length = int((sq_distance(xy1, xy2) / self.SPACING) ** 0.5)
 
@@ -44,12 +43,16 @@ class Squad:
         for line in range(len(self.minions) // length):
             for i in range(length):
                 try:
-                    self.minions[i + length*line].go (
+                    self.minions[i + length*line].goto = (
                         xy1[0] + vector[0] * i + vector[1] * line,
                         xy1[1] + vector[1] * i + vector[0] * line
                     )
                 except IndexError:
                     return
         print(self.color)
+
+    def tick(self, tick):
+        for i in self.minions:
+            i.tick(tick)
 
     def go(self): pass
