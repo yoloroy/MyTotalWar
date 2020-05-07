@@ -22,30 +22,42 @@ class Minion:
     goto: Tuple[int, int] = None  # coords
 
     def tick(self, tick):
-        if self.fight: self.charge()
+        if self.health <= 0:
+            return False
+
+        if self.fight and self.enemy is not None:
+            self.charge()
+            if self.enemy.health <= 0:
+                self.enemy = None
         if self.goto is not None: self.go(tick)
 
-        return self.health > 0
+        return True
 
     def choose_enemy(self, enemies: list):
-        self.enemy = nearest (
-            self,
-            enemies
-        )
+        try:
+            self.enemy = nearest (
+                self,
+                enemies
+            )
+        except ValueError:
+            return
 
     def go(self, tick=1000):
         dx, dy = (self.goto[i] - self.position[i] for i in range(2))
-        dist = sq_distance(self.position, self.goto) ** 0.5
-        self.position = \
-            (self.position[0] + self.speed * tick * dx / dist,
-             self.position[1] + self.speed * tick * dy / dist)
+        dist = sq_distance(self.position, self.goto)
 
-        if sq_distance(self.position, self.goto) < 1:
+        if dist < 1:
             self.goto = None
+            return
+
+        self.position = (
+            self.position[0] + self.speed * tick * dx / dist,
+            self.position[1] + self.speed * tick * dy / dist
+        )
 
     # start fight
     def charge(self):
-        if sq_distance(self.position, self.enemy.position) > self.range ** 2:
+        if sq_distance(self.position, self.enemy.position) > self.range:
             self.goto = self.enemy.position
         else:
             self.hit()
@@ -69,7 +81,7 @@ class Minion:
                 self.health -= damage
 
         # if we can hit back
-        if sq_distance(self.position, enemy.position) - self.range ** 2 <= 1:
+        if sq_distance(self.position, enemy.position) - self.range <= 1 and self.health > 0:
             self.enemy = enemy
             self.charge()
 
@@ -79,8 +91,8 @@ class Minion:
     def copy(self):
         return Minion(
             self.position,
-            self.health,
-            self.damage,
+            self.health + randint(0, 1),
+            [randint(-1, 1) + i for i in self.damage],
             self.pierce,
             self.armor,
             self.dodging,

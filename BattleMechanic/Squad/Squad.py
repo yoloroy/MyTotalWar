@@ -5,7 +5,8 @@ from Funcs.Funcs import sq_distance, new_thread, list_sum
 
 
 class Squad:
-    SPACING = 20
+    SPACING = 2
+    battle = False
     def __init__(self, example: Minion, num, color, enemies=list()):
         self.minions = example.multiply(num)
         self.enemies = enemies  # enemy squads
@@ -13,9 +14,9 @@ class Squad:
 
         r, g, b = self.color
         self.minion_color = (
-            0xff if r + 0x88 > 0xff else r + 0x88,
-            0xff if g + 0x88 > 0xff else g + 0x88,
-            0xff if b + 0x88 > 0xff else b + 0x88
+            0xff if r + 0x44 > 0xff else r + 0x44,
+            0xff if g + 0x44 > 0xff else g + 0x44,
+            0xff if b + 0x44 > 0xff else b + 0x44
         )
 
     @property
@@ -27,11 +28,12 @@ class Squad:
 
     def rush(self):
         for i in self.minions:
-            i.choose_enemy(list_sum(self.enemies))
-            i.charge()
+            if i.enemy is None:
+                i.choose_enemy(self.enemies)
+                i.fight = True
 
     def line_up(self, xy1, xy2):
-        length = int((sq_distance(xy1, xy2) / self.SPACING) ** 0.5)
+        length = int(sq_distance(xy1, xy2) / self.SPACING)
 
         vector = (
             (xy2[0] - xy1[0]) / length,
@@ -51,9 +53,11 @@ class Squad:
                     )
                 except IndexError:
                     return
-        print(self.color)
 
     def tick(self, tick):
+        if self.battle:
+            self.rush()
         self.minions = list(filter(lambda i: i.tick(tick), self.minions))
+        self.enemies = list(filter(lambda i: i.health > 0, self.enemies))
 
     def go(self): pass
