@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from random import random, randint
 from typing import Tuple
 
-from math import sin, cos, atan, asin
-
 from Funcs.Funcs import nearest, sq_distance, sign
 
 
@@ -27,6 +25,8 @@ class Minion:
         if self.fight: self.charge()
         if self.goto is not None: self.go(tick)
 
+        return self.health > 0
+
     def choose_enemy(self, enemies: list):
         self.enemy = nearest (
             self,
@@ -34,13 +34,11 @@ class Minion:
         )
 
     def go(self, tick=1000):
-        try:
-            angle = atan((self.goto[1] - self.position[1]) / (self.goto[0] - self.position[0]))
-        except ZeroDivisionError:
-            angle = sign(self.goto[1] - self.position[1])
+        dx, dy = (self.goto[i] - self.position[i] for i in range(2))
+        dist = sq_distance(self.position, self.goto) ** 0.5
         self.position = \
-            (self.position[0] + self.speed * tick * cos(angle),
-             self.position[1] + self.speed * tick * sin(angle))
+            (self.position[0] + self.speed * tick * dx / dist,
+             self.position[1] + self.speed * tick * dy / dist)
 
         if sq_distance(self.position, self.goto) < 1:
             self.goto = None

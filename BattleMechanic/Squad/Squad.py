@@ -1,9 +1,11 @@
+from math import ceil
+
 from BattleMechanic.Minion.Minion import Minion
 from Funcs.Funcs import sq_distance, new_thread, list_sum
 
 
 class Squad:
-    SPACING = 4
+    SPACING = 20
     def __init__(self, example: Minion, num, color, enemies=list()):
         self.minions = example.multiply(num)
         self.enemies = enemies  # enemy squads
@@ -11,9 +13,9 @@ class Squad:
 
         r, g, b = self.color
         self.minion_color = (
-            0xff if r + 0x44 > 0xff else r + 0x44,
-            0xff if g + 0x44 > 0xff else g + 0x44,
-            0xff if b + 0x44 > 0xff else b + 0x44
+            0xff if r + 0x88 > 0xff else r + 0x88,
+            0xff if g + 0x88 > 0xff else g + 0x88,
+            0xff if b + 0x88 > 0xff else b + 0x88
         )
 
     @property
@@ -52,7 +54,6 @@ class Squad:
         print(self.color)
 
     def tick(self, tick):
-        for i in self.minions:
-            i.tick(tick)
+        self.minions = list(filter(lambda i: i.tick(tick), self.minions))
 
     def go(self): pass

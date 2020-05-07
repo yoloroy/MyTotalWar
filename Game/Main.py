@@ -7,7 +7,7 @@ from Funcs.Funcs import hex_color
 
 def draw_minions(surface, squad):
     for i in squad.minions:
-        pygame.draw.line(
+        pygame.draw.aaline (
             surface,
             squad.minion_color,
             i.position,
@@ -49,15 +49,15 @@ def main():
         draw_minions(surface, squad1)
         draw_minions(surface, squad2)
 
+        pygame.draw.circle(surface, squad1.color, squad1.position, 4)
+        pygame.draw.circle(surface, squad2.color, squad2.position, 4)
+
         squad1.tick(1 / fps)
         squad2.tick(1 / fps)
 
         pygame.display.update()
         pygame.display.flip()
         clock.tick(fps)
-
-        #pygame.draw.circle(surface, squad1.color, squad1.position, 2)
-        #pygame.draw.circle(surface, squad2.color, squad2.position, 2)
 
 
 
