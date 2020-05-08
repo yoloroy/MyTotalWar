@@ -1,32 +1,34 @@
+import time
 from dataclasses import dataclass
 from random import random, randint, uniform
-from typing import Tuple
+from typing import Tuple, Union, List
 
-import time
+from lib.funcs import nearest, sq_distance
 
-from Funcs.Funcs import nearest, sq_distance
+Position = Union[Tuple[int, int], Tuple[int, int], None]
+MinMax = Union[List[int, int], Tuple[int, int]]  # or Iterable[int, int]. Use what you want.
 
 
 @dataclass
 class Minion:
     # unit params:
-    position: Tuple[float, float]  # position by (x, y)
+    position: Position  # position by (x, y)
     health: int  # health limit
-    damage: Tuple[int, int]  # [min, max]
+    damage: MinMax  # [min, max]
     pierce: int  # value of armor ignore
     armor: int  # value of damage ignore
     dodging: float  # chance of full ignore damage
     miss: float  # chance of missing
     range: int  # melee attack range
-    chill: Tuple[int, int]  # time between attacks [min, max]
+    chill: MinMax  # time between attacks [min, max]
     speed: int  # tiles per second
 
     # enemy
-    enemy = None  # type: Minion
+    enemy = None  # type: Union[Minion, None]
 
     # temp variables
-    fight = False
-    goto: Tuple[int, int] = None  # coords
+    fight: bool = False
+    goto: Position = None  # coords
     chill_end = None
 
     def tick(self, tick):
@@ -41,13 +43,14 @@ class Minion:
                 self.charge()
                 if self.enemy.health <= 0:
                     self.enemy = None
-            if self.goto is not None: self.go(tick)
+            if self.goto is not None:
+                self.go(tick)
 
         return True
 
     def choose_enemy(self, enemies: list):
         try:
-            self.enemy = nearest (
+            self.enemy = nearest(
                 self,
                 enemies
             )
@@ -98,7 +101,7 @@ class Minion:
         return [self.copy() for _ in range(num)]
 
     def copy(self):
-        return Minion (
+        return Minion(
             self.position,
             self.health + randint(0, 1),
             [randint(-1, 1) + i for i in self.damage],

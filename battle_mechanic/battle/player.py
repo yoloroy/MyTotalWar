@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from typing import List
 
-from BattleMechanic.Squad.Squad import Squad
+from battle_mechanic.squad.squad import Squad
 
 
 @dataclass
 class Player:
     squads: List[Squad]
-
-    pass#ing
