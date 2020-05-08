@@ -1,16 +1,14 @@
-import time
 from dataclasses import dataclass
 from random import random, randint, uniform
-from typing import Tuple, Union, List
 
-from lib.funcs import nearest, sq_distance
+import time
 
-Position = Union[Tuple[int, int], Tuple[int, int], None]
-MinMax = Union[List[int, int], Tuple[int, int]]  # or Iterable[int, int]. Use what you want.
+from battle_mechanic.abstracts import Tickable, Positionable, Position, MinMax
+from lib.funcs import nearest, distance
 
 
 @dataclass
-class Minion:
+class Minion(Tickable, Positionable):
     # unit params:
     position: Position  # position by (x, y)
     health: int  # health limit
@@ -24,15 +22,19 @@ class Minion:
     speed: int  # tiles per second
 
     # enemy
-    enemy = None  # type: Union[Minion, None]
+    enemy = None  # type: Minion
 
     # temp variables
-    fight: bool = False
+    fight = False
     goto: Position = None  # coords
     chill_end = None
 
     def tick(self, tick):
-        # die
+        """Base unit tick mechanic
+
+        :param tick: float, time from last tick
+        :return: is the object alive
+        """
         if self.health <= 0:
             return False
 
@@ -43,14 +45,14 @@ class Minion:
                 self.charge()
                 if self.enemy.health <= 0:
                     self.enemy = None
-            if self.goto is not None:
-                self.go(tick)
+            if self.goto is not None: self.go(tick)
 
         return True
 
     def choose_enemy(self, enemies: list):
+        """Choose nearest enemy, if enemy exists"""
         try:
-            self.enemy = nearest(
+            self.enemy = nearest (
                 self,
                 enemies
             )
@@ -59,8 +61,9 @@ class Minion:
 
     # noinspection PyAttributeOutsideInit
     def go(self, tick=1000):
+        """Do one tick of move"""
         dx, dy = (self.goto[i] - self.position[i] for i in range(2))
-        dist = sq_distance(self.position, self.goto)
+        dist = distance(self.position, self.goto)
 
         if dist < 1:
             self.goto = None
@@ -71,23 +74,27 @@ class Minion:
             self.position[1] + self.speed * tick * dy / dist
         )
 
-    # start fight
     def charge(self):
-        if sq_distance(self.position, self.enemy.position) > self.range:
+        """Do one tick of fight"""
+        if distance(self.position, self.enemy.position) > self.range:
             self.goto = self.enemy.position
         else:
             self.hit()
             self.chill_end = time.monotonic() + uniform(*self.chill)
 
-    # base hit mechanic
     def hit(self):
-        # if we didn't miss
+        """Base hitting mechanic
+
+        work if we didn't miss
+        """
         if random() > self.miss:
             self.enemy.receive(randint(*self.damage), self.pierce)
 
-    # base receive hit mechanic
     def receive(self, damage, pierce):
-        # if we didn't dodge/block
+        """Base receive hit mechanic
+
+        work if we didn't dodge or block
+        """
         if random() > self.dodging:
             block = self.armor - pierce
             if block < 0:
@@ -97,14 +104,17 @@ class Minion:
             if damage > 0:
                 self.health -= damage
 
-    def multiply(self, num):
-        return [self.copy() for _ in range(num)]
+    def __mul__(self, other):
+        if type(other) is int:
+            return [self.copy() for _ in range(other)]
+        raise ValueError("int required")
 
     def copy(self):
-        return Minion(
+        """Create full copy of current object"""
+        return Minion (
             self.position,
-            self.health + randint(0, 1),
-            [randint(-1, 1) + i for i in self.damage],
+            self.health,
+            self.damage,
             self.pierce,
             self.armor,
             self.dodging,

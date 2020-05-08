@@ -1,17 +1,13 @@
-from math import ceil
-
 from battle_mechanic.minion.minion import Minion
-from lib.funcs import sq_distance, new_thread, list_sum
+from battle_mechanic.abstracts import Positionable, Tickable
+from lib.funcs import distance
 
 
-class Squad:
+class Squad(Tickable, Positionable):
     SPACING = 2
-    battle = False
-
-    def __init__(self, example: Minion, num, color, enemies=None):
-        if enemies is None:
-            enemies = list()
-        self.minions = example.multiply(num)
+    rushing = False
+    def __init__(self, example: Minion, num, color, enemies=list()):
+        self.minions = example * num
         self.enemies = enemies  # enemy squads
         self.color = color
 
@@ -36,7 +32,7 @@ class Squad:
                 i.fight = True
 
     def line_up(self, xy1, xy2):
-        length = int(sq_distance(xy1, xy2) / self.SPACING)
+        length = int(distance(xy1, xy2) / self.SPACING)
 
         vector = (
             (xy2[0] - xy1[0]) / length,
@@ -46,11 +42,10 @@ class Squad:
         for i in self.minions:
             i.enemy = None
 
-        # size = sum(map(lambda minion: int(minion.health > 0), self.minions))
         for line in range(len(self.minions) // length):
             for i in range(length):
                 try:
-                    self.minions[i + length * line].goto = (
+                    self.minions[i + length*line].goto = (
                         xy1[0] + vector[0] * i + vector[1] * line,
                         xy1[1] + vector[1] * i + vector[0] * line
                     )
@@ -58,10 +53,11 @@ class Squad:
                     return
 
     def tick(self, tick):
-        if self.battle:
+        if self.rushing:
             self.rush()
         self.minions = list(filter(lambda i: i.tick(tick), self.minions))
         self.enemies = list(filter(lambda i: i.health > 0, self.enemies))
 
-    def go(self):
-        pass
+        return bool(len(self.minions))
+
+    def go(self): pass
