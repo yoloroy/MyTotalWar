@@ -1,12 +1,15 @@
 from dataclasses import dataclass
-from random import random, randint
+from random import random, randint, uniform
 from typing import Tuple
 
-from Funcs.Funcs import nearest, sq_distance, sign
+import time
+
+from Funcs.Funcs import nearest, sq_distance
 
 
 @dataclass
 class Minion:
+    # unit params:
     position: Tuple[float, float]  # position by (x, y)
     health: int  # health limit
     damage: Tuple[int, int]  # [min, max]
@@ -17,19 +20,28 @@ class Minion:
     range: int  # melee attack range
     chill: Tuple[int, int]  # time between attacks [min, max]
     speed: int  # tiles per second
+
+    # enemy
     enemy = None  # type: Minion
+
+    # temp variables
     fight = False
     goto: Tuple[int, int] = None  # coords
+    chill_end = None
 
     def tick(self, tick):
+        # die
         if self.health <= 0:
             return False
 
-        if self.fight and self.enemy is not None:
-            self.charge()
-            if self.enemy.health <= 0:
-                self.enemy = None
-        if self.goto is not None: self.go(tick)
+        if self.chill_end is None or self.chill_end >= time.monotonic():
+            self.chill_end = None
+
+            if self.fight and self.enemy is not None:
+                self.charge()
+                if self.enemy.health <= 0:
+                    self.enemy = None
+            if self.goto is not None: self.go(tick)
 
         return True
 
@@ -42,6 +54,7 @@ class Minion:
         except ValueError:
             return
 
+    # noinspection PyAttributeOutsideInit
     def go(self, tick=1000):
         dx, dy = (self.goto[i] - self.position[i] for i in range(2))
         dist = sq_distance(self.position, self.goto)
@@ -61,15 +74,16 @@ class Minion:
             self.goto = self.enemy.position
         else:
             self.hit()
+            self.chill_end = time.monotonic() + uniform(*self.chill)
 
     # base hit mechanic
     def hit(self):
         # if we didn't miss
         if random() > self.miss:
-            self.enemy.receive(randint(*self.damage), self.pierce, self)
+            self.enemy.receive(randint(*self.damage), self.pierce)
 
     # base receive hit mechanic
-    def receive(self, damage, pierce, enemy=None):
+    def receive(self, damage, pierce):
         # if we didn't dodge/block
         if random() > self.dodging:
             block = self.armor - pierce
@@ -80,16 +94,11 @@ class Minion:
             if damage > 0:
                 self.health -= damage
 
-        # if we can hit back
-        if sq_distance(self.position, enemy.position) - self.range <= 1 and self.health > 0:
-            self.enemy = enemy
-            self.charge()
-
     def multiply(self, num):
         return [self.copy() for _ in range(num)]
 
     def copy(self):
-        return Minion(
+        return Minion (
             self.position,
             self.health + randint(0, 1),
             [randint(-1, 1) + i for i in self.damage],
