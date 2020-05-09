@@ -1,8 +1,38 @@
 import pygame
 
+import time
+
 from battle_mechanic.minion.melee.example import example
 from battle_mechanic.squad.squad import Squad
-from lib.funcs import hex_color, list_sum
+from lib.funcs import hex_color, list_sum, new_thread
+from ui.button import Button
+from ui.data import GRAVITY_LEFT, GRAVITY_TOP, Margins, GRAVITY_RIGHT, GRAVITY_CENTER, GRAVITY_BOTTOM
+
+running = True
+pygame.init()
+size = width, height = 400, 300
+fps = 30
+clock = pygame.time.Clock()
+surface = pygame.display.set_mode(size)
+
+reds = []
+
+blues = []
+
+
+@new_thread
+def logic(commands):
+    """Do game logic mechanics
+
+    all tickables here are Squads because all based on them
+    in future be based on Players
+    """
+    tick = time.monotonic()
+    while running:
+        tickables = list(filter(lambda x: x.tiick(tick), tickables))
+        for i in tickables:
+            i.tick(time.monotonic() - tick)
+        tick = time.monotonic()
 
 
 def draw_text(surf, text, size, x, y, color):
@@ -15,7 +45,7 @@ def draw_text(surf, text, size, x, y, color):
 
 def draw_minions(surface, squad):
     for i in squad.minions:
-        pygame.draw.line(
+        pygame.draw.line (
             surface,
             squad.minion_color,
             i.position,
@@ -23,11 +53,18 @@ def draw_minions(surface, squad):
         )
 
 
-def main():
-    size = width, height = 400, 300
-    fps = 30
+def draw():
+    """"""
 
-    running = True
+def on_click_chaos(_: Button):
+    for i in range(3):
+        reds[i].rushing = True
+        blues[i].rushing = True
+
+
+def main():
+    global running, reds, blues
+
 
     reds = [
         Squad(example((100, 150)), 300, hex_color(0xff0000)),
@@ -53,10 +90,16 @@ def main():
     blues[1].line_up((300, 220), (300, 270))
     blues[2].line_up((300, 30), (300, 80))
 
-    pygame.init()
 
-    clock = pygame.time.Clock()
-    surface = pygame.display.set_mode(size)
+    rush_button = Button(
+        surface,
+        GRAVITY_CENTER,
+        hex_color(0xdddddd),
+        "Run chaos",
+        hex_color(0x181818),
+        on_click_chaos,
+        4,
+        Margins(5, 5, 5, 5))
 
     while running:
         surface.fill(hex_color(0x000000))
@@ -64,28 +107,24 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                for i in range(3):
-                    reds[i].battle = True
-                    blues[i].battle = True
+                rush_button.on_click(*pygame.mouse.get_pos())
 
         for i in range(3):
-            reds[i].tick(1 / fps)
+            reds [i].tick(1 / fps)
             blues[i].tick(1 / fps)
 
         # TODO: remove draw to Player
         for i in range(3):
-            draw_minions(surface, reds[i])
+            draw_minions(surface, reds [i])
             draw_minions(surface, blues[i])
 
         for i in range(3):
             try:
                 pygame.draw.circle(surface, reds[i].color, reds[i].position, 4)
-            except ZeroDivisionError:
-                pass
+            except ZeroDivisionError: pass
             try:
                 pygame.draw.circle(surface, blues[i].color, blues[i].position, 4)
-            except ZeroDivisionError:
-                pass
+            except ZeroDivisionError: pass
 
         if sum(len(i.minions) for i in reds) <= 0:
             print("reds loose")
@@ -95,6 +134,8 @@ def main():
             print("blues loose")
             win = "BLUES", 0x1111ee
             break
+
+        rush_button.draw()
 
         pygame.display.update()
         pygame.display.flip()
